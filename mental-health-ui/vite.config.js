@@ -6,6 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/mental-health-tracker/', // 👈 ADD THIS LINE
   plugins: [
     vue(),
     vueDevTools(),

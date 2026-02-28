@@ -1,5 +1,6 @@
 import axios from 'axios';
 
 export default axios.create({
-  baseURL: 'http://localhost:3000'
+  // Replace this with your actual Render URL
+  baseURL: 'https://mental-health-tracker-1.onrender.com' 
 });
