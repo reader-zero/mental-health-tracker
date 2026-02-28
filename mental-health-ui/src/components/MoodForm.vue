@@ -1,10 +1,14 @@
 <template>
   <div class="mood-form">
     <h2>Mood Check-in</h2>
-    <input v-model="name" placeholder="Your name" />
-    <textarea v-model="mood" :disabled="isLoading" placeholder="How are you feeling today?"></textarea>
     
-    <button @click="submitMood" :disabled="isLoading || !mood">
+    <label for="user-name">Full Name:</label>
+    <input id="user-name" v-model="name" placeholder="Enter your full name" />
+    
+    <label for="mood-text">How are you feeling today?</label>
+    <textarea id="mood-text" v-model="mood" :disabled="isLoading" placeholder="Describe your mood..."></textarea>
+    
+    <button @click="submitMood" :disabled="isLoading || !mood || !name">
       {{ isLoading ? '🤖 AI is thinking...' : 'Submit Mood' }}
     </button>
 
@@ -36,9 +40,9 @@ export default {
       name: '',
       mood: '',
       aiMessage: '',
-      history: [],      // To store the history list
-      isLoading: false, // For the loading spinner
-      errorMessage: ''  // For Error UI
+      history: [],      
+      isLoading: false, 
+      errorMessage: ''  
     };
   },
   methods: {
@@ -53,25 +57,29 @@ export default {
     async submitMood() {
       this.isLoading = true;
       this.errorMessage = '';
+      
       try {
+        // UPDATED: Sending 'full_name' using the 'this.name' data property
         const res = await api.post('/api/moods', {
-          user_id: 1, 
+          full_name: this.name, 
           mood_text: this.mood
         });
 
         this.aiMessage = res.data.aiMessage;
+        
+        // Clear the mood text area but keep the name for the next entry
         this.mood = ''; 
         
-        // Refresh the history list after a new post
+        // Refresh the history list to show the new entry with the correct name
         this.fetchHistory(); 
       } catch (error) {
         this.errorMessage = "Connection Error: Is the Lab 4 server running?";
+        console.error("Submit Error:", error);
       } finally {
         this.isLoading = false;
       }
     }
   },
-  // This runs as soon as the page loads
   mounted() {
     this.fetchHistory();
   }
@@ -80,13 +88,15 @@ export default {
 
 <style scoped>
 .mood-form { display: flex; flex-direction: column; max-width: 450px; margin: auto; gap: 10px; text-align: left; }
-textarea { height: 100px; padding: 10px; }
+input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+textarea { height: 100px; }
+button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
 button:disabled { background: #ccc; cursor: not-allowed; }
 
 .ai-response { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; border-left: 5px solid #007bff; }
 .error-msg { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; border: 1px solid #f5c6cb; }
 
 .history-section { margin-top: 30px; }
-.history-card { padding: 10px; border-bottom: 1px solid #eee; background: #fafafa; margin-bottom: 5px; }
+.history-card { padding: 10px; border-bottom: 1px solid #eee; background: #fafafa; margin-bottom: 5px; border-radius: 4px; }
 .ai-small { font-size: 0.85rem; color: #555; margin-top: 5px; }
 </style>

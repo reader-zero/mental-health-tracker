@@ -5,46 +5,56 @@ import { getAIResponse } from "../services/aiService.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const { user_id, mood_text } = req.body;
+  try {
+    // 1. Capture 'full_name' from the Vue request
+    const { full_name, mood_text } = req.body;
 
-  const [result] = await db.query(
-    "INSERT INTO mood_entries (user_id, mood_text) VALUES (?, ?)",
-    [user_id, mood_text]
-  );
+    // 2. Check if the user exists, or create them to get a real user_id
+    let [user] = await db.query("SELECT id FROM users WHERE full_name = ?", [full_name]);
+    
+    let userId;
+    if (user.length > 0) {
+      userId = user[0].id;
+    } else {
+      // Create user if they don't exist
+      const [newUser] = await db.query("INSERT INTO users (full_name) VALUES (?)", [full_name]);
+      userId = newUser.insertId;
+    }
 
-  const aiMessage = await getAIResponse(mood_text);
+    // 3. Insert the mood entry using the dynamic userId
+    const [result] = await db.query(
+      "INSERT INTO mood_entries (user_id, mood_text) VALUES (?, ?)",
+      [userId, mood_text]
+    );
 
-  await db.query(
-    "INSERT INTO ai_responses (mood_entry_id, ai_message) VALUES (?, ?)",
-    [result.insertId, aiMessage]
-  );
+    // 4. Get the AI Response (Passing the mood_text to make it dynamic)
+    const aiMessage = await getAIResponse(mood_text);
 
-  res.json({ message: "Mood saved", aiMessage });
+    // 5. Store the AI response
+    await db.query(
+      "INSERT INTO ai_responses (mood_entry_id, ai_message) VALUES (?, ?)",
+      [result.insertId, aiMessage]
+    );
+
+    res.json({ message: "Mood saved", aiMessage });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 router.get("/", async (req, res) => {
+  // Added ORDER BY so the newest names show up at the top
   const [rows] = await db.query(`
-    SELECT u.full_name, m.mood_text, a.ai_message
+    SELECT u.full_name, m.mood_text, a.ai_message, m.id
     FROM users u
     JOIN mood_entries m ON u.id = m.user_id
     JOIN ai_responses a ON m.id = a.mood_entry_id
+    ORDER BY m.id DESC 
   `);
 
   res.json(rows);
 });
 
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Note: This will only work if you delete the AI response first 
-    // due to the Foreign Key, or if you set up ON DELETE CASCADE.
-    await db.query("DELETE FROM ai_responses WHERE mood_entry_id = ?", [id]);
-    await db.query("DELETE FROM mood_entries WHERE id = ?", [id]);
-    
-    res.json({ message: `Mood entry ${id} deleted successfully` });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
+// ... keep your delete route as is ...
 export default router;
