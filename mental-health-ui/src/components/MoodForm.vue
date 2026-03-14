@@ -55,25 +55,27 @@ export default {
       }
     },
     async submitMood() {
+      // LAB 7: Logging event tracking
+      console.log("User clicked submit button");
+      console.log("Mood value entered:", this.mood);
+
       this.isLoading = true;
       this.errorMessage = '';
       
       try {
-        // UPDATED: Sending 'full_name' using the 'this.name' data property
         const res = await api.post('/api/moods', {
           full_name: this.name, 
           mood_text: this.mood
         });
 
+        // LAB 7: Logging response status
+        console.log("API response status:", res.status);
+
         this.aiMessage = res.data.aiMessage;
-        
-        // Clear the mood text area but keep the name for the next entry
         this.mood = ''; 
-        
-        // Refresh the history list to show the new entry with the correct name
         this.fetchHistory(); 
       } catch (error) {
-        this.errorMessage = "Connection Error: Is the Lab 4 server running?";
+        this.errorMessage = "Connection Error: Is the Lab 7 server running?";
         console.error("Submit Error:", error);
       } finally {
         this.isLoading = false;
